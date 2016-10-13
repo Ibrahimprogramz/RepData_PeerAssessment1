@@ -1,25 +1,135 @@
----
-title: "Reproducible Research: Peer Assessment 1"
-output: 
-  html_document:
-    keep_md: true
----
+=======
+title: "Research Reproducibility: Project 1"
+author: "Ibrahimprogramz"
+date: "September 29, 2016"
+output: html_document
+=======
+
+##Setting the global parameters: All codes and its results should appear
+```{r global echo}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## Loading and preprocessing data
+```{r loading and preprocessing data}
+activity<-read.csv("activity.csv")
+activity$date<-as.Date(as.character(activity$date))
+```
+
+##What is mean total number of steps taken per day?
+
+I loaded the library dplyr in but I have hidden the output as it makes the document looks messy
+
+```{r loading library, include=FALSE}
+library(ggplot2)
+library(dplyr)
+library(chron)
+library(lattice)
+```
+
+```{r steps means}
+
+#grouping by days to calculate each day and storing into a new dataset to preserve the original
+activityday<-group_by(activity, date)
+#creating a new dataset containing the means of the grouped days
+daytotal<-summarize(activityday,ssum=sum(steps))
+
+#now drawing the result
+#drawing the means of each day and breaks is used to count the number of days so that each day mean is on a bar
+hist(daytotal$ssum, main = "Steps means to each day from 1/10/2012 to 30/11/2012", xlab = "means of steps for each day", ylab="days", breaks = length(unique(activity$date)), col="blue")
+#calculating the means and median of steps for the totals of days
+meanMedian<-summarize(daytotal, mean=mean(ssum, na.rm = T), median=median(ssum, na.rm = T))
+#printing the mean and median
+print(meanMedian)
+```
+
+##What is the average daily activity pattern?
+
+```{r activity pattern}
+interval<-group_by(activity, interval)
+intervalStepMeans<-summarize(interval, stepsmean=mean(steps, na.rm = T))
+
+ggplot() + geom_line(data= intervalStepMeans, aes(x=interval, y=stepsmean), size=.6, color="orange") + ggtitle("Timeseries plot of the steps throuout 5-min day intervals")
+indexMax<-which(intervalStepMeans$stepsmean==max(intervalStepMeans$stepsmean))
+#The max steps mean is at the interval:
+intervalStepMeans[indexMax,1]
+```
+
+##Imputing missing values
+
+```{r}
+#number of missing values
+sum(is.na(activity$steps))
+
+#the strategy is to replace the missing values with day means
+
+#calculating the means without NAs
+daytotal1<-summarise(activityday, mean=mean(steps))
+
+activity1<-activity
 
 
-## Loading and preprocessing the data
+j<-1
+for(i in 1:17568)
+{
+if(activity1$interval[i]==2355) 
+{
+  j<-j+1
+}
+if(is.na(activity1$steps[i])) 
+{ 
+  activity1$steps[i]<-daytotal1$mean[j]
+}
+
+}
+
+activity2<-group_by(activity1, date)
+activity2<-summarize(activity2, steps=sum(steps))
+hist(activity2$steps, main="total number of steps taken each day",xlab = "Steps",ylab = "Days" ,breaks = 30, col="green")
+
+#the mean and the median
+mean(activity2$steps, na.rm = T)
+
+median(activity2$steps, na.rm = T)
+
+#Do these values differ from the estimates from the first part of the assignment? YES
+mean(daytotal$ssum, na.rm = T)
+median(daytotal$ssum, na.rm = T)
+
+#What is the impact of imputing missing data on the estimates of the total daily number of steps? yes and the difference is:
+sum(activity$steps, na.rm = T)-sum(activity1$steps, na.rm = T)
+```
+
+##Are there differences in activity patterns between weekdays and weekends?
+
+``` {r}
+activity1$day<-weekdays(activity1$date)
+#determining which is which regarding weekday and weeek ends
+for(i in 1:17568)
+{
+  if(is.weekend(activity1$date[i]))
+   { 
+    activity1$day[i]<-"weekend"}
+  else
+    activity1$day[i]<-"weekday"
+}
+activity1Weekend<-subset(activity1, day=="weekend")
+activity1Weekday<-subset(activity1, day=="weekday")
+
+#weekday data subsetting
+activity1IntervalWeekday<-group_by(activity1Weekday, interval)
+activity1IntervalStepsWeekday<-summarize(activity1IntervalWeekday, smean=mean(steps, na.rm = T))
+
+#weekend data subsetting
+activity1IntervalWeekend<-group_by(activity1Weekend, interval)
+activity1IntervalStepsWeekend<-summarize(activity1IntervalWeekend, smean=mean(steps, na.rm = T))
 
 
 
-## What is mean total number of steps taken per day?
+#drawing the data after its was subsetted into weekends and weekdays
 
+ggplot()+ geom_line(data = activity1IntervalStepsWeekend, aes(x=interval, y=smean), col="blue") +ggtitle("Intervals VS Mean of Steps During Weekends") 
 
-
-## What is the average daily activity pattern?
-
-
-
-## Imputing missing values
-
-
-
-## Are there differences in activity patterns between weekdays and weekends?
+ggplot()+ geom_line(data = activity1IntervalStepsWeekday, aes(x=interval, y=smean), col="red") +ggtitle("Intervals VS Mean of Steps During Weekdays")
+```
+>>>>>>> Project 1
